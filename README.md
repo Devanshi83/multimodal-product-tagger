@@ -306,3 +306,19 @@ docker compose --profile training run --rm train
 ## License
 
 MIT © 2026
+
+---
+
+## Results Visualisation
+
+### Modality Comparison
+![Modality Comparison](results/modality_comparison.png)
+
+### Confusion Matrix — Top 10 Classes
+![Confusion Matrix](results/confusion_matrix_top10.png)
+
+---
+
+## Known Limitations
+
+Single-modality mAP scores (image: 0.031, text: 0.029) reflect an **architectural ablation**, not independent unimodal baselines. The classification head was trained end-to-end in fusion mode — feeding only image or text produces out-of-distribution activations. Training separate per-modality heads is tracked in [TODO.md](TODO.md).
