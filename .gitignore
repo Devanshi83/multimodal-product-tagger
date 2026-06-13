@@ -1,0 +1,14 @@
+.venv/
+venv/
+env/
+data/raw/
+checkpoints/
+__pycache__/
+*.pyc
+*.pyo
+mlruns/
+.cache/
+.DS_Store
+.ipynb_checkpoints/
+.vscode/
+.idea/

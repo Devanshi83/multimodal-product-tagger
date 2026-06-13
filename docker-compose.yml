@@ -1,0 +1,121 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Multi-Modal Product Tagger — Docker Compose
+#
+# Services
+# ─────────────────────────────────────────────────────────────────────────────
+#   api      → FastAPI prediction server  http://localhost:8000
+#   mlflow   → MLflow tracking UI         http://localhost:5000
+#   train    → One-off training job (run with `docker compose run train`)
+#
+# Quick start
+# ─────────────────────────────────────────────────────────────────────────────
+#   # 1. Place trained checkpoint in ./checkpoints/best_model.pt, then:
+#   docker compose up api mlflow
+#
+#   # 2. Or train from scratch (dataset must already be in ./data/raw/):
+#   docker compose run --rm train
+#   docker compose up api mlflow
+# ─────────────────────────────────────────────────────────────────────────────
+
+x-common: &common
+  build:
+    context: .
+    dockerfile: Dockerfile
+    target: runtime
+  environment:
+    TRANSFORMERS_CACHE: /app/.cache/huggingface
+    HF_HOME: /app/.cache/huggingface
+    MLFLOW_TRACKING_URI: http://mlflow:5000
+  volumes:
+    # Persist checkpoints, results, and HuggingFace model cache across runs
+    - ./checkpoints:/app/checkpoints
+    - ./results:/app/results
+    - ./data:/app/data
+    - hf_cache:/app/.cache/huggingface
+
+services:
+
+  # ── FastAPI inference server ──────────────────────────────────────────────
+  api:
+    <<: *common
+    container_name: mmt_api
+    ports:
+      - "8000:8000"
+    environment:
+      TRANSFORMERS_CACHE: /app/.cache/huggingface
+      HF_HOME: /app/.cache/huggingface
+      CHECKPOINT_PATH: /app/checkpoints/best_model.pt
+      DEVICE: cpu
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    command: >
+      uvicorn api.main:app
+        --host 0.0.0.0
+        --port 8000
+        --workers 1
+        --log-level info
+
+  # ── MLflow tracking server ────────────────────────────────────────────────
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.9.2
+    container_name: mmt_mlflow
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow_data:/mlflow
+    environment:
+      MLFLOW_BACKEND_STORE_URI: sqlite:///mlflow/mlflow.db
+      MLFLOW_DEFAULT_ARTIFACT_ROOT: /mlflow/artifacts
+    command: >
+      mlflow server
+        --backend-store-uri sqlite:///mlflow/mlflow.db
+        --default-artifact-root /mlflow/artifacts
+        --host 0.0.0.0
+        --port 5000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ── One-off training job ──────────────────────────────────────────────────
+  train:
+    <<: *common
+    container_name: mmt_train
+    environment:
+      TRANSFORMERS_CACHE: /app/.cache/huggingface
+      HF_HOME: /app/.cache/huggingface
+      DEVICE: cpu
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    profiles:
+      - training        # only starts with: docker compose --profile training up train
+    command: >
+      python train.py
+        --styles-csv /app/data/raw/styles.csv
+        --image-dir  /app/data/raw/images
+        --max-epochs 20
+        --batch-size 32
+    restart: "no"      # exit after training completes
+
+# ── Named volumes ─────────────────────────────────────────────────────────────
+volumes:
+  hf_cache:
+    driver: local
+  mlflow_data:
+    driver: local
