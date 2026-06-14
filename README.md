@@ -181,7 +181,7 @@ multimodal_product_tagger/
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/multimodal-product-tagger.git
+git clone https://github.com/Devanshi83/multimodal-product-tagger.git
 cd multimodal-product-tagger
 
 python3 -m venv .venv
@@ -221,7 +221,7 @@ python predict.py --demo
 
 # All three modes with comparison table
 python predict.py \
-  --image data/raw/images/1163.jpg \
+  --image data/raw/myntradataset/images/1163.jpg \
   --text  "Blue Casual Shirt for Men" \
   --checkpoint checkpoints/model_best.pt
 ```
@@ -229,7 +229,7 @@ python predict.py \
 ### 5. API server
 
 ```bash
-uvicorn api.main:app --host 0.0.0.0 --port 8000
+CHECKPOINT_PATH=checkpoints/model_best.pt uvicorn api.main:app --host 0.0.0.0 --port 8000
 ```
 
 Swagger UI → **http://localhost:8000/docs**
@@ -238,7 +238,7 @@ Swagger UI → **http://localhost:8000/docs**
 # Example request
 IMAGE_B64=$(python3 -c "
 import base64
-print(base64.b64encode(open('data/raw/images/1163.jpg','rb').read()).decode())
+print(base64.b64encode(open('data/raw/myntradataset/images/1163.jpg','rb').read()).decode())
 ")
 
 curl -X POST http://localhost:8000/predict \
