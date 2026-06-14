@@ -13,7 +13,6 @@ jobs:
         with:
           python-version: "3.9"
       - name: Install dependencies
-        run: |
-          pip install pytest numpy scikit-learn scipy -q
+        run: pip install pytest numpy scikit-learn scipy matplotlib seaborn -q
       - name: Run tests
         run: pytest tests/ -v --tb=short
