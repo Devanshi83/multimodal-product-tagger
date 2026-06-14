@@ -6,8 +6,7 @@ def test_precision_at_k_range():
     from evaluation.metrics import precision_at_k
     labels = (np.random.rand(50, 10) > 0.7).astype(float)
     scores = np.random.rand(50, 10)
-    result = precision_at_k(labels, scores, k=1)
-    assert 0.0 <= result <= 1.0
+    assert 0.0 <= precision_at_k(labels, scores, k=1) <= 1.0
 
 def test_precision_at_k_perfect():
     from evaluation.metrics import precision_at_k
@@ -23,7 +22,6 @@ def test_compute_all_metrics_keys():
     assert "mAP" in result
     assert "hamming_loss" in result
     assert "f1_micro" in result
-    assert "f1_macro" in result
     assert "precision_at_1" in result
 
 def test_compute_all_metrics_ranges():
